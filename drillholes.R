@@ -1,7 +1,6 @@
 ---
   title: "Drillholes"
 
-# Hi - just checking how this works (Andrew)
 ---
   
 #  This R source code analyses drillholes for a sample region in South Australia. The region selected was (135.8, -32.0) to (136.3, -32.6). Drillhole data, gravity data, magnetic data and MINDEP data was found using the SARIG "advanced search" facility.
