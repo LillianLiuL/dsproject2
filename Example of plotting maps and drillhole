@@ -1,0 +1,156 @@
+---
+  title: "Drillholes"
+---
+#Author	   Date       Purpose
+  
+#Lillian  25Aug2017  Example of plotting maps and drillhole  
+
+require(sp)
+require(raster)
+require(rgdal)
+
+
+setwd("F:\\DSP2\\sample data\\sample data")
+# Drillholes
+
+drillholes <- read.csv("drillholes/drillhole_detail.csv")
+
+cat("Number of drillholes:", length(drillholes[,1]), "\n")
+
+#The drillhole columns are:
+
+names(drillholes)
+
+
+# Gravity data
+#The following plot shows the drillhole locations on the gravity data.
+
+
+gravity  <- readGDAL("gravity/south_australia/SA_GRAV.ers")
+plot(gravity)
+points(drillholes$LONG_DEG_REAL, drillholes$NEG_LAT_DEG_REAL, cex = 0.1, col = "white")
+summary(gravity)
+
+
+# Magnetic
+#The following plot shows the drillhole locations on the magnetic data
+
+magnetic  <- readGDAL("magnetic/south_australia/SA_TMI_RTP.ers")
+plot(magnetic)
+points(drillholes$LONG_DEG_REAL, drillholes$NEG_LAT_DEG_REAL, cex = 0.1, col = "white")
+
+
+# MINDEP
+
+#MINDEP data is supposed to give quality information for drillholes, but only three drillholes in the region are included.
+
+
+drillholes_sucess <- read.csv("mindep/MINDEP_IOCG_extract.csv")
+
+cat("Number of sucess drillholes:", length(drillholes_sucess[,1]), "\n")
+
+require(sp) 
+#get dataframe from gravity and magnetic ers files.
+magnetic_1<-data.frame(magnetic)
+gravity_1<-data.frame(gravity)
+#rename columns
+#colnames(gravity_data) <- c("gravity","LONG_DEG_REAL","NEG_LAT_DEG_REAL")
+#colnames(magnetic_data) <- c("magnetic","LONG_DEG_REAL","NEG_LAT_DEG_REAL")
+#to merge gravity_data and magnetic_data with drillholes, reduce the precision of Lon and Lat
+#gravity_data$LONG_DEG_REAL1<-round(gravity_data$LONG_DEG_REAL,3)
+#gravity_data$NEG_LAT_DEG_REAL1<-round(gravity_data$NEG_LAT_DEG_REAL,3)
+#magnetic_data$LONG_DEG_REAL1<-round(magnetic_data$LONG_DEG_REAL,3)
+#magnetic_data$NEG_LAT_DEG_REAL1<-round(magnetic_data$NEG_LAT_DEG_REAL,3)
+#drillholes$LONG_DEG_REAL1<-round(drillholes$LONG_DEG_REAL,3)
+#drillholes$NEG_LAT_DEG_REAL1<-round(drillholes$NEG_LAT_DEG_REAL,3)
+#merge procedure
+#gravity_data_total <- merge(drillholes,gravity_data,by=c("LONG_DEG_REAL1","NEG_LAT_DEG_REAL1")) 
+#all_data_total <- merge(gravity_data_total,magnetic_data,by=c("LONG_DEG_REAL1","NEG_LAT_DEG_REAL1")) 
+
+# use 2 successful drillholes as sample
+sample_success<-head(drillholes_sucess,2)
+
+#need install geosphere package firstly,using distm function to calculate the dist between 2 points
+
+sample_success$magnetic<-0
+sample_success$gravity<-0
+sample_success$magnetic_x<-0
+sample_success$magnetic_y<-0
+sample_success$gravity_x<-0
+sample_success$gravity_y<-0
+
+require(geosphere)
+dist_lt <- function(c,P){
+  d<-distm(c,P)
+  r<-which(d==min(d),arr.ind=T)
+  print(paste("row number is", r[1,1]))
+  return(r[1,1])
+}
+#value_m function is for extract magnetic value
+value_m <- function(dataframe,p){
+  xy=dataframe[c("x","y")]
+  d<-dist_lt(xy,p)
+  band<-dataframe[d,]$band1
+  print(paste("magnetic",band))
+  return(band)
+}
+value_d <- function(dataframe,p){
+  xy=dataframe[c("x","y")]
+  d<-dist_lt(xy,p)
+  
+  return(d)
+}
+
+
+for (i in 1:length(sample_success$LONGITUDE)) 
+{
+  p= sample_success[i,][c("LONGITUDE","LATITUDE")] ;
+  print(paste("modifed row number",i,"row number"));
+  print(paste("coordinate of this row is",p));
+  v<-value_m(magnetic_1,p)
+  d<-value_d(magnetic_1,p)
+  sample_success$magnetic_x[i]<-magnetic_1$x[d]
+  sample_success$magnetic_y[i]<-magnetic_1$y[d]
+  sample_success$magnetic[i] <- v
+ 
+}
+
+for (i in 1:length(sample_success$LONGITUDE)) 
+{
+  p= sample_success[i,][c("LONGITUDE","LATITUDE")] ;
+  print(paste("modifed row number",i,"row number"));
+  print(paste("coordinate of this row is",p));
+  v<-value_m(gravity_1,p)
+  d<-value_d(gravity_1,p)
+  sample_success$gravity_x[i]<-gravity_1$x[d]
+  sample_success$gravity_y[i]<-gravity_1$y[d]
+  sample_success$gravity[i] <- v
+}  
+
+sample<-sample_success[,c(41:42,48:53)]
+colnames(sample) <- c("x","y","magnetic","gravity","magnetic_x","magnetic_y","gravity_x","gravity_y")
+require(ggplot2)
+require(ggmap)
+map4 <- get_map(location = c(lon = 136.5000, lat =-32.3000), zoom = 8)
+
+ggmap(map4)+
+  geom_point(data=gravity_1,aes(x=x,y=y),colour = 'orange',alpha=0.9) + 
+  geom_point(data=sample,aes(x=x,y=y),colour = 'darkred',alpha=0.9,size=2) + 
+  geom_point(data=sample,aes(x=gravity_x,y=gravity_y),colour = 'white',alpha=0.9)  +                                                                                                                              
+  annotate('text', x=136.2975, y=-31.79753, label = 'the gravity of the nearest point', colour =  I('red'), size = 2) +
+  annotate('segment',x=137.4146, xend=136.2975, y=-31.18395, yend=-31.99753,colour='red', arrow = arrow(length=unit(0.3,'cm')), size = 0.05) +
+  annotate('segment',x=137.4984, xend=136.2975, y=-31.21752, yend=-31.99753,colour='red', arrow = arrow(length=unit(0.3,'cm')), size = 0.05) +
+  labs(x = 'Longitude', y = 'Latitude') + ggtitle('mineral prospecting map')
+
+
+ggmap(map4)+
+  geom_point(data=magnetic_1,aes(x=x,y=y),colour='green',alpha=0.9)+ 
+  geom_point(data=sample,aes(x=x,y=y),colour = 'darkred',alpha=0.9,size=2) + 
+  geom_point(data=sample,aes(x=magnetic_x,y=magnetic_y),colour = 'black',alpha=0.9)+annotate('text', x=136.2975, y=-31.79753, label = 'the magnetic of the nearest point', colour =  I('red'), size = 2) +
+  annotate('segment',x=137.4146, xend=136.3015, y=-31.18395, yend=-32.00112,colour='red', arrow = arrow(length=unit(0.3,'cm')), size = 0.05) +
+  annotate('segment',x=137.4984, xend=136.3015, y=-31.21752, yend=-32.00112,colour='red', arrow = arrow(length=unit(0.3,'cm')), size = 0.05) +
+  labs(x = 'Longitude', y = 'Latitude') + ggtitle('mineral prospecting map') 
+
+
+
+
