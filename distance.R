@@ -1,4 +1,6 @@
-#Kristina  25 Aug 2017  To simulate merge between data source (lon,lat)
+#Author	   Date       Purpose
+#Kristina  25Aug2017  To simulate merge between data source (lon,lat)
+#(other modification please state here)
 require(sp)
 require(raster)
 require(rgdal)

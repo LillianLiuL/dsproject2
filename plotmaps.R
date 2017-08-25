@@ -1,4 +1,7 @@
-#Kristina 25 Aug 2017  Example of plotting maps and drillhole
+#Author	   Date       Purpose
+#Kristina  25Aug2017  Example of plotting maps and drillhole
+#(other modification pls state here)
+
 getwd()
 
 drillholes <- read.csv("drillholes/successful_drillhole.csv")
